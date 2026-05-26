@@ -11,9 +11,10 @@ using MinimalApi.Dominio.ModelViews;
 using MinimalApi.Dominio.Servicos;
 using MinimalApi.DTOs;
 using MinimalApi.Infraestrutura.Db;
+using Microsoft.OpenApi.Models;
 
 
-#region Builder
+        #region Builder
 
 public partial class Program
 {
@@ -27,7 +28,7 @@ public partial class Program
 
         #region JWT
 
-        var key = "minimal-api-chave-super-secreta";
+        var key = "minimal-api-chave-super-secreta-com-mais-de-32-caracteres-123456";
 
         builder.Services
             .AddAuthentication("Bearer")
@@ -59,43 +60,58 @@ public partial class Program
 
         #region Banco de Dados
 
-        builder.Services.AddDbContext<DbContexto>(options =>
-            options.UseMySql(
-                "Server=localhost;Database=MinimalApiDb;User=root;Password=123456;",
-                new MySqlServerVersion(new Version(8, 0, 36))
-            )
+         var connectionString =
+         builder.Configuration.GetConnectionString("mysql");
+
+         builder.Services.AddDbContext<DbContexto>(options =>
+         options.UseMySql(
+         connectionString,
+         ServerVersion.AutoDetect(connectionString)
+       )
         );
 
         #endregion
 
-        #region Swagger
+#region Swagger
 
-        builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddEndpointsApiExplorer();
 
-        builder.Services.AddSwaggerGen(options =>
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Minimal API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Digite: Bearer {seu token}"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
-            options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Name = "Authorization",
-                Type = Microsoft.OpenApi.SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT",
-                In = Microsoft.OpenApi.ParameterLocation.Header,
-                Description = "Insira o token JWT desta maneira: Bearer {Seu token}"
-            });
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
 
-            options.AddSecurityRequirement(document =>
-     new Microsoft.OpenApi.OpenApiSecurityRequirement
-            {
-        {
-            new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer"),
-            new List<string>()
+            Array.Empty<string>()
         }
-            });
-        });
+    });
+});
 
-        #endregion
-
+#endregion
         var app = builder.Build();
 
         #region Middleware
@@ -174,13 +190,15 @@ public partial class Program
 
         // LISTAR -> protegido
         app.MapGet("/administradores",
-            (IAdministradorServico administradorServico) =>
-        {
-            return Results.Ok(adms);
+        async (DbContexto db) =>
+       {
+         var administradores = await db.Administradores.ToListAsync();
+
+        return Results.Ok(administradores);
         })
-        .RequireAuthorization()
-        .RequireAuthorization(policy => policy.RequireRole("Adm"))
-        .WithTags("Administradores");
+         .RequireAuthorization()
+         .RequireAuthorization(policy => policy.RequireRole("Adm"))
+         .WithTags("Administradores");
 
 
         // BUSCAR POR ID -> protegido
@@ -205,7 +223,7 @@ public partial class Program
             return Results.Created($"/administradores/{administrador.Id}", administrador);
         })
         .RequireAuthorization()
-       .RequireAuthorization(policy => policy.RequireRole("Adm"))
+        .RequireAuthorization(policy => policy.RequireRole("Adm"))
         .WithTags("Administradores");
 
         #endregion
@@ -229,7 +247,7 @@ public partial class Program
             return Results.Created($"/veiculos/{veiculo.Id}", veiculo);
         })
         .RequireAuthorization()
-        .RequireAuthorization(policy => policy.RequireRole("Adm, Editor"))
+        .RequireAuthorization(new AuthorizeAttribute { Roles = "Adm,Editor" })
         .WithTags("Veículos");
 
         app.MapPut("/veiculos/{id}",
@@ -253,7 +271,7 @@ public partial class Program
         return Results.Ok(veiculo);
     })
     .RequireAuthorization()
-    .RequireAuthorization(policy => policy.RequireRole("Adm, Editor"))
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "Adm" })
     .WithTags("Veículos");
 
         app.MapGet("/veiculos",
@@ -265,7 +283,7 @@ public partial class Program
             return Results.Ok(veiculos);
         })
         .RequireAuthorization()
-        .RequireAuthorization(policy => policy.RequireRole("Adm, Editor"))
+        .RequireAuthorization(new AuthorizeAttribute { Roles = "Adm,Editor" })
         .WithTags("Veículos");
 
         app.MapDelete("/veiculos/{id}",
@@ -286,12 +304,18 @@ public partial class Program
         return Results.NoContent();
     })
      .RequireAuthorization()
-     .RequireAuthorization(policy => policy.RequireRole("Adm"))
+     .RequireAuthorization(new AuthorizeAttribute { Roles = "Adm" })
      .WithTags("Veículos");
      #endregion  
        
        #region App
         
+       app.UseSwagger();
+       app.UseSwaggerUI();
+
+       app.UseAuthentication();
+       app.UseAuthorization();
+
         app.Run();
        
         #endregion

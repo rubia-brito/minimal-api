@@ -5,17 +5,29 @@ namespace MinimalApi.Infraestrutura.Db
 {
     public class DbContexto : DbContext
     {
+        private IConfigurationRoot configuration;
+
         public DbContexto(DbContextOptions<DbContexto> options) : base(options) { }
+
+        public DbContexto(IConfigurationRoot configuration)
+        {
+            this.configuration = configuration;
+        }
 
         public DbSet<Administrador> Administradores { get; set; }
         public DbSet<Veiculo> Veiculos { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            if (!optionsBuilder.IsConfigured)
-            {
-                optionsBuilder.UseMySql("Server=(localdb)\\mysqllocaldb;Database=MinhaBaseDeDados;Trusted_Connection=True;", ServerVersion.AutoDetect("Server=(localdb)\\mssqllocaldb;Database=MinhaBaseDeDados;Trusted_Connection=True;"));
-            }
-        }
+   {
+             if (!optionsBuilder.IsConfigured)
+       {
+        var stringConexao = configuration.GetConnectionString("mysql");
+
+        optionsBuilder.UseMySql(
+            stringConexao,
+            ServerVersion.AutoDetect(stringConexao)
+        );
+       }
+    }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
