@@ -4,15 +4,13 @@ using MinimalApi.DTOs;
 namespace MinimalApi.Dominio.Interfaces
 {
     public interface IAdministradorServico
-    {
-        Administrador? Login(LoginDTO loginDTO);
+  {
+    Administrador? Login(LoginDTO loginDTO);
 
-        List<Administrador> Todos();
+    List<Administrador> Todos();
 
-        List<Administrador> Todos(int v);
+    void Incluir(Administrador adm);
 
-        void Incluir(Administrador adm);
-
-        int BuscaPorId(int id);
+    Administrador? BuscaPorId(int id);
     }
 }

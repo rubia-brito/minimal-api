@@ -75,6 +75,6 @@ public sealed class AdministradorServicoTests
         var admDoBanco = administradorServico.BuscaPorId(adm.Id);
 
         // Assert
-        Assert.AreEqual(2, admDoBanco);
+      Assert.AreEqual(1, admDoBanco.Id);
     }
 }

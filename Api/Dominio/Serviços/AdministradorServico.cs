@@ -14,12 +14,10 @@ namespace MinimalApi.Dominio.Servicos
             _contexto = contexto;
         }
 
-        public int BuscaPorId(int id)
+        public Administrador? BuscaPorId(int id)
         {
-            var administrador = _contexto.Administradores
-                .FirstOrDefault(a => a.Id == id);
-
-            return administrador?.Id ?? 0;
+         return _contexto.Administradores
+        .FirstOrDefault(a => a.Id == id);
         }
 
         public void Incluir(Administrador adm)
@@ -40,11 +38,7 @@ namespace MinimalApi.Dominio.Servicos
             return administrador;
         }
 
-        public List<Administrador> Todos(int v)
-        {
-            return _contexto.Administradores.ToList();
-        }
-
+       
         public List<Administrador> Todos()
         {
             return _contexto.Administradores.ToList();
